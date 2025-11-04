@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Security–Functionality–Usability (SFU) Interactive</title>
+  <style>
+    :root{
+      --bg:#0b0f14;--panel:#121821;--muted:#7b8aa0;--text:#e6eefb;--brand:#ff4455;--ok:#4cd964;--warn:#ffcc00;--bad:#ff3b30;--accent:#3aa0ff;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;background:radial-gradient(1200px 800px at 80% -10%, #1b2432 0%, #0b0f14 60%), var(--bg);color:var(--text);font-family:Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";}
+    header{padding:28px 24px 12px;display:flex;gap:16px;align-items:center;justify-content:space-between;}
+    h1{margin:0;font-size:20px;letter-spacing:.2px}
+    header .sub{color:var(--muted);font-size:13px}
+    .container{display:grid;grid-template-columns:380px 1fr;gap:24px;padding:0 24px 28px;}
+    @media (max-width: 980px){.container{grid-template-columns:1fr}}
+
+    .card{background:linear-gradient(180deg,#0f1520 0%,#0c121a 100%);border:1px solid #1b2432;border-radius:16px;box-shadow:0 10px 30px rgba(0,0,0,.35);}
+    .card h2{font-size:14px;font-weight:600;color:#c9d7f1;letter-spacing:.2px;margin:0 0 2px}
+    .card .body{padding:18px;}
+
+    .control{margin:18px 0}
+    .control label{display:flex;justify-content:space-between;margin-bottom:6px;color:#c9d7f1;font-size:12px}
+    .control input[type=range]{width:100%}
+    .row{display:flex;gap:10px;align-items:center}
+    select, button{background:#0d1420;border:1px solid #1c2636;color:var(--text);padding:10px 12px;border-radius:10px;font-size:13px}
+    button.primary{background:linear-gradient(180deg,#ff5a6e,#ff3d52);border-color:#ff3349}
+
+    .badges{display:flex;gap:8px;flex-wrap:wrap}
+    .badge{font-size:11px;padding:6px 8px;border-radius:999px;border:1px solid #1c2636;background:#0d1420;color:#c9d7f1}
+
+    /* Triad canvas */
+    .viz{display:grid;grid-template-columns:1fr;place-items:center;min-height:420px;padding:8px}
+    .legend{display:flex;gap:16px;margin-top:8px}
+    .legend .chip{display:flex;gap:6px;align-items:center;font-size:12px;color:#c9d7f1}
+    .dot{width:10px;height:10px;border-radius:50%}
+    .s{background:var(--brand)}
+    .f{background:var(--accent)}
+    .u{background:var(--ok)}
+
+    .metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:10px}
+    .kpi{background:#0c121a;border:1px solid #1b2432;border-radius:12px;padding:10px 12px;text-align:center}
+    .kpi .label{font-size:11px;color:#a1b1c9}
+    .kpi .value{font-size:22px;font-weight:700;margin-top:2px}
+
+    .effects{display:grid;gap:8px;margin-top:10px}
+    .effects .item{display:flex;gap:10px;align-items:flex-start;padding:10px;border-radius:10px;border:1px solid #1b2432;background:#0d1420}
+    .effects .icon{font-weight:700}
+
+    a.small{color:#9cc7ff;text-decoration:none;font-size:12px}
+  </style>
+</head>
+<body>
+  <header>
+    <div>
+      <h1>Security–Functionality–Usability (SFU) Trade‑off</h1>
+      <div class="sub">Tune security and watch how functionality & usability respond. Based on the SFU principle: optimizing one dimension often costs the others.</div>
+    </div>
+  </header>
+
+  <main class="container">
+    <!-- Controls -->
+    <section class="card">
+      <div class="body">
+        <h2>Controls</h2>
+        <div class="control">
+          <label>
+            <span>Security level</span>
+            <span><strong id="secLabel">60</strong>/100</span>
+          </label>
+          <input id="security" type="range" min="0" max="100" value="60" />
+        </div>
+
+        <div class="control">
+          <label>
+            <span>Trade‑off curve</span>
+            <a class="small" href="#" id="curveHint">what's this?</a>
+          </label>
+          <div class="row">
+            <select id="curve">
+              <option value="linear">Linear (steady trade‑off)</option>
+              <option value="convex">Convex (security gets expensive fast)</option>
+              <option value="concave">Concave (cheap hardening at first)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="control">
+          <label>
+            <span>Functional priority split</span>
+            <span><span id="biasLabel">50</span>% to Functionality / <span id="biasLabelU">50</span>% to Usability</span>
+          </label>
+          <input id="bias" type="range" min="0" max="100" value="50" />
+          <div class="badges">
+            <span class="badge">Bias left → more features</span>
+            <span class="badge">Bias right → easier to use</span>
+          </div>
+        </div>
+
+        <div class="control">
+          <label><span>Presets</span></label>
+          <div class="row">
+            <button class="primary" data-preset="bank">Banking / Regulated</button>
+            <button data-preset="enterprise">Balanced Enterprise</button>
+            <button data-preset="consumer">Consumer App</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Visualization -->
+    <section class="card">
+      <div class="body">
+        <h2>Visualization</h2>
+        <div class="viz">
+          <!-- SVG equilateral triangle with value polygon -->
+          <svg id="triad" viewBox="0 0 400 360" width="100%" height="320">
+            <defs>
+              <linearGradient id="gradS" x1="0" x2="0" y1="0" y2="1">
+                <stop offset="0%" stop-color="#ff5a6e"/>
+                <stop offset="100%" stop-color="#a31222"/>
+              </linearGradient>
+              <linearGradient id="gradF" x1="0" x2="1" y1="0" y2="0">
+                <stop offset="0%" stop-color="#3aa0ff"/>
+                <stop offset="100%" stop-color="#004e9e"/>
+              </linearGradient>
+              <linearGradient id="gradU" x1="0" x2="1" y1="0" y2="1">
+                <stop offset="0%" stop-color="#57e38b"/>
+                <stop offset="100%" stop-color="#067f4a"/>
+              </linearGradient>
+              <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+                <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+                <feMerge>
+                  <feMergeNode in="coloredBlur"/>
+                  <feMergeNode in="SourceGraphic"/>
+                </feMerge>
+              </filter>
+            </defs>
+
+            <!-- Triangle -->
+            <polygon id="triangle" points="200,20 360,320 40,320" fill="#0b111a" stroke="#223049" stroke-width="2"/>
+
+            <!-- Guides (ticks) -->
+            <g id="ticks" stroke="#233148" stroke-width="1" opacity="0.4"></g>
+
+            <!-- Value polygon -->
+            <polygon id="poly" fill="rgba(255,68,85,0.28)" stroke="#ff4455" stroke-width="2" filter="url(#glow)"></polygon>
+
+            <!-- Labels -->
+            <g fill="#c9d7f1" font-size="12" text-anchor="middle">
+              <text x="200" y="14">Security</text>
+              <text x="360" y="338">Functionality</text>
+              <text x="40" y="338">Usability</text>
+            </g>
+          </svg>
+          <div class="legend">
+            <div class="chip"><span class="dot s"></span> Security</div>
+            <div class="chip"><span class="dot f"></span> Functionality</div>
+            <div class="chip"><span class="dot u"></span> Usability</div>
+          </div>
+          <div class="metrics">
+            <div class="kpi"><div class="label">Security</div><div class="value" id="kS">—</div></div>
+            <div class="kpi"><div class="label">Functionality</div><div class="value" id="kF">—</div></div>
+            <div class="kpi"><div class="label">Usability</div><div class="value" id="kU">—</div></div>
+          </div>
+          <div class="effects" id="effects"></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    // Geometry helpers for the SFU triangle (equilateral)
+    const A = {x:200, y:20};     // Security
+    const B = {x:360, y:320};    // Functionality
+    const C = {x:40,  y:320};    // Usability
+
+    // Build tick guides
+    (function buildTicks(){
+      const g = document.getElementById('ticks');
+      const steps = 5; // 20% increments
+      for(let i=1;i<steps;i++){
+        const t = i/steps;
+        const p1 = lerp(B,C,t); // base side
+        const p2 = lerp(A, centroid(B,C,A), t); // towards apex
+        const l = line(p1,p2);
+        g.appendChild(l);
+      }
+      function line(p1,p2){
+        const el = document.createElementNS('http://www.w3.org/2000/svg','line');
+        el.setAttribute('x1',p1.x); el.setAttribute('y1',p1.y);
+        el.setAttribute('x2',lerp(p1,A,0.1).x); el.setAttribute('y2',lerp(p1,A,0.1).y);
+        return el;
+      }
+      function centroid(){
+        let xs=0,ys=0; for(const p of arguments){xs+=p.x;ys+=p.y} return {x:xs/arguments.length,y:ys/arguments.length};
+      }
+      function lerp(p,q,t){return {x:p.x+(q.x-p.x)*t,y:p.y+(q.y-p.y)*t}}
+    })();
+
+    const elSecurity = document.getElementById('security');
+    const elCurve = document.getElementById('curve');
+    const elBias = document.getElementById('bias');
+    const secLabel = document.getElementById('secLabel');
+    const biasLabel = document.getElementById('biasLabel');
+    const biasLabelU = document.getElementById('biasLabelU');
+
+    // Update visualization based on controls
+    function update(){
+      const S = +elSecurity.value; // 0..100
+      const curve = elCurve.value; // linear | convex | concave
+      const bias = +elBias.value/100; // 0..1 (portion to Functionality)
+
+      secLabel.textContent = S;
+      biasLabel.textContent = Math.round(bias*100);
+      biasLabelU.textContent = 100-Math.round(bias*100);
+
+      // Map S -> remaining budget R, then split into F & U according to bias
+      // Curve shaping: convex means security eats budget faster at high S
+      let R; // remaining for F+U
+      const s = S/100;
+      if(curve==='linear')     R = 1 - s;            // straight line
+      else if(curve==='convex')R = 1 - Math.pow(s,1.6); // heavy penalties later
+      else                      R = 1 - Math.pow(s,0.6); // cheap at first
+
+      let F = clamp01(R * bias);
+      let U = clamp01(R * (1-bias));
+
+      // To nicer numbers 0..100
+      const nS = Math.round(S);
+      const nF = Math.round(F*100);
+      const nU = Math.round(U*100);
+
+      document.getElementById('kS').textContent = nS;
+      document.getElementById('kF').textContent = nF;
+      document.getElementById('kU').textContent = nU;
+
+      drawTriad(nS, nF, nU);
+      renderEffects(nS,nF,nU);
+    }
+
+    function clamp01(v){return Math.max(0, Math.min(1, v));}
+
+    // Convert SFU values to barycentric point inside triangle and draw polygon from center
+    function drawTriad(S,F,U){
+      const poly = document.getElementById('poly');
+      const center = {x:(A.x+B.x+C.x)/3, y:(A.y+B.y+C.y)/3};
+
+      const pS = moveFrom(center, A, S/100);
+      const pF = moveFrom(center, B, F/100);
+      const pU = moveFrom(center, C, U/100);
+
+      poly.setAttribute('points', `${pS.x},${pS.y} ${pF.x},${pF.y} ${pU.x},${pU.y}`);
+    }
+
+    function moveFrom(p, towards, t){
+      return {x: p.x + (towards.x - p.x)*t, y: p.y + (towards.y - p.y)*t};
+    }
+
+    // Scenario effects list to make it feel practical
+    function renderEffects(S,F,U){
+      const box = document.getElementById('effects');
+      box.innerHTML = '';
+      const items = [];
+      // Security effects
+      items.push({ok: S>=70, text:'Strong auth (MFA, device binding)'});
+      items.push({ok: S>=60, text:'Tight rate limiting & WAF rules'});
+      items.push({ok: S>=50, text:'Sensitive data encrypted at rest & transit'});
+      items.push({ok: S>=40, text:'Audit logging & anomaly alerts'});
+      // Functionality impacts
+      items.push({ok: F>=60, text:'Advanced features enabled (exports, API, integrations)'});
+      items.push({ok: F>=40, text:'Bulk operations available'});
+      items.push({ok: F>=20, text:'Third‑party plugins permitted'});
+      // Usability impacts
+      items.push({ok: U>=70, text:'One‑tap sign‑in & long sessions'});
+      items.push({ok: U>=50, text:'Fewer prompts; seamless flows'});
+      items.push({ok: U>=30, text:'Guest access & sharing made easy'});
+
+      for(const it of items){
+        const el = document.createElement('div');
+        el.className = 'item';
+        const icon = document.createElement('div');
+        icon.className = 'icon';
+        icon.style.color = it.ok ? 'var(--ok)' : 'var(--bad)';
+        icon.textContent = it.ok ? '✔' : '✖';
+        const text = document.createElement('div');
+        text.textContent = it.text;
+        text.style.color = it.ok ? '#cfeedd' : '#f3c4c4';
+        el.appendChild(icon); el.appendChild(text);
+        box.appendChild(el);
+      }
+    }
+
+    // Presets
+    document.querySelectorAll('[data-preset]').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        const p = btn.getAttribute('data-preset');
+        if(p==='bank'){ elSecurity.value = 85; elCurve.value='convex'; elBias.value=35; }
+        if(p==='enterprise'){ elSecurity.value = 65; elCurve.value='linear'; elBias.value=50; }
+        if(p==='consumer'){ elSecurity.value = 35; elCurve.value='concave'; elBias.value=60; }
+        update();
+      })
+    });
+
+    // Curve helper
+    document.getElementById('curveHint').addEventListener('click', (e)=>{
+      e.preventDefault();
+      alert('Trade‑off curve shapes how quickly security “eats” the shared budget.\n\n• Linear: every step of security costs a steady amount.\n• Convex: costs rise steeply at the high end (e.g., invasive checks).\n• Concave: early wins are cheap (e.g., basic hardening), later costs are mild.');
+    });
+
+    // Bind updates
+    ['input','change'].forEach(evt=>{
+      elSecurity.addEventListener(evt,update);
+      elCurve.addEventListener(evt,update);
+      elBias.addEventListener(evt,update);
+    });
+
+    // Initial paint
+    update();
+  </script>
+</body>
+</html>
